@@ -64,7 +64,7 @@ public extension Resource where Output: Codable {
         // We first validate the URLResponse that we received in order to check if everything went ok.
         try Self.validateResponse(response, data: data)
         
-        return try decodeData(data: data)
+        return try Self.decodeData(data: data)
     }
     
 }
@@ -88,7 +88,7 @@ public extension Resource where Output: Codable {
                     
                     do {
                         try Self.validateResponse(response, data: data)
-                        let output = try decodeData(data: data)
+                        let output = try Self.decodeData(data: data)
                         completion(.success(output))
                     } catch {
                         if let resourceError = error as? ResourceError {
@@ -177,7 +177,7 @@ public extension Resource where Output == URL {
 
 fileprivate extension Resource where Output: Codable {
     
-    func decodeData(data: Data) throws -> Output {
+    static func decodeData(data: Data) throws -> Output {
         if Output.self == String.self {
             if let dataStr = (String(data: data, encoding: .utf8) ?? "") as? Self.Output {
                 return dataStr
@@ -191,7 +191,7 @@ fileprivate extension Resource where Output: Codable {
         throw ResourceError.badDataType
     }
     
-    func decodeErrorOutput(data: Data) throws -> OutputError {
+    static func decodeErrorOutput(data: Data) throws -> OutputError {
         if Output.self == String.self {
             if let dataStr = (String(data: data, encoding: .utf8) ?? "") as? Self.OutputError {
                 return dataStr
