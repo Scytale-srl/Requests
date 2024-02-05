@@ -35,7 +35,7 @@ public enum ResourceError: Error, LocalizedError {
         case .unexpectedError(message: let message):
             return "An unexpected error occurred: \(message)"
         case let .apiError(resultError):
-            return "\(resultError.errorCode) " + (resultError.debugMessage ?? "Unknown error message.")
+            return "\(resultError.errorCode) " + (resultError.rawMessage ?? "Unknown error message.")
         }
     }
     

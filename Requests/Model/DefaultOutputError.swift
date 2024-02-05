@@ -11,7 +11,7 @@ import Foundation
 public struct DefaultError: DebuggableError, Codable {
     public var errorCode: Int
     
-    public var debugMessage: String?
+    public var rawMessage: String?
     
     public var humanReadableMessage: String?
     
@@ -21,7 +21,7 @@ public struct DefaultError: DebuggableError, Codable {
                 debugMessage: String? = nil,
                 humanReadableMessage: String? = nil) {
         self.errorCode = errorCode
-        self.debugMessage = debugMessage
+        self.rawMessage = debugMessage
         self.humanReadableMessage = humanReadableMessage
     }
     

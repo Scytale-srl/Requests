@@ -10,7 +10,7 @@ import Foundation
 public protocol DebuggableError {
     
     var errorCode: Int { get }
-    var debugMessage: String? { get }
+    var rawMessage: String? { get }
     var humanReadableMessage: String? { get }
     
 }
