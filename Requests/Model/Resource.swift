@@ -26,7 +26,7 @@ public protocol Resource {
      The type that is expected to be returned by the API in case of an error.
      */
     associatedtype OutputError: DebuggableError, Codable
-    
+     
     /**
      The HTTP method that is required to retreive/consume the resource.
      */
@@ -62,7 +62,7 @@ public extension Resource where Output: Codable {
         try Task.checkCancellation()
         
         // We first validate the URLResponse that we received in order to check if everything went ok.
-        try validateResponse(response, data: data)
+        try Self.validateResponse(response, data: data)
         
         return try decodeData(data: data)
     }
@@ -76,31 +76,104 @@ public extension Resource where Output: Codable {
                  urlSessionConfiguration: URLSessionConfiguration? = nil,
                  completion: @escaping (Result<Output, ResourceError>) -> ()) {
         self.urlRequest(with: parameter, userAgent: userAgent) { result in
-            switch result {
-            case .success(let request):
+            do {
+                let request = try result.get()
                 let session = Self.session(urlConfiguration: urlSessionConfiguration)
                 let dataTask = session.dataTask(with: request) { data, response, error in
-                    guard let data, let response else {
-                        completion(.failure(.unexpectedError(message: "Nul response.")))
+                    guard let data,
+                          let response else {
+                        completion(.failure(.unexpectedError(message: error?.localizedDescription ?? "Unexpected error while fetching \(String(describing: request.url))")))
                         return
                     }
                     
                     do {
-                        try self.validateResponse(response, data: data)
+                        try Self.validateResponse(response, data: data)
                         let output = try decodeData(data: data)
                         completion(.success(output))
                     } catch {
-                        completion(.failure(.badDataType))
+                        if let resourceError = error as? ResourceError {
+                            completion(.failure(resourceError))
+                        } else {
+                            completion(.failure(.unexpectedError(message: error.localizedDescription)))
+                        }
                     }
                 }
                 dataTask.resume()
-            case .failure(let failure):
-                completion(.failure(.unexpectedError(message: failure.localizedDescription)))
+            } catch {
+                completion(.failure(.unexpectedError(message: error.localizedDescription)))
             }
         }
     }
     
 }
+
+@available(iOS 13.0, *)
+public extension Resource where Output == URL {
+    
+    /// Requests the desired resource asynchronously.
+    /// - Parameter parameter: The input parameter that is necessary to build the URLRequest.
+    /// - Returns: Returns the received data decoded into the expected output type, or throws an error.
+    func download(using parameter: Input,
+                  userAgent: String = "Requests for iOS",
+                  urlConfiguration: URLSessionConfiguration? = nil) async throws -> Output {
+        
+        let request = try await urlRequest(with: parameter, userAgent: userAgent)
+        let session = Self.session(urlConfiguration: urlConfiguration)
+        
+        let (filesystemURL, response): (URL, URLResponse)
+        if #available(iOS 15.0, macOS 12.0, *) {
+            (filesystemURL, response) = try await session.download(for: request)
+        } else {
+            (filesystemURL, response) = try await session.download(using: request)
+        }
+        
+        // We check if the Task got cancelled to avoid decoding data for nothing.
+        try Task.checkCancellation()
+        
+        // We first validate the URLResponse that we received in order to check if everything went ok.
+        try Self.validateResponse(response, data: nil)
+        
+        return filesystemURL
+    }
+}
+
+public extension Resource where Output == URL {
+    
+    func download(using parameter: Input,
+                  userAgent: String = "Requests for iOS",
+                  urlSessionConfiguration: URLSessionConfiguration? = nil,
+                  completion: @escaping (Result<Output, ResourceError>) -> Void) {
+        
+        self.urlRequest(with: parameter, userAgent: userAgent) { result in
+            do {
+                let request = try result.get()
+                let session = Self.session(urlConfiguration: urlSessionConfiguration)
+                let downloadTask = session.downloadTask(with: request) { filesystemURL, response, error in
+                    guard let filesystemURL,
+                          let response else {
+                        completion(.failure(.unexpectedError(message: error?.localizedDescription ?? "Unexpected error while fetching \(String(describing: request.url))")))
+                        return
+                    }
+                    
+                    do {
+                        try Self.validateResponse(response, data: nil)
+                        completion(.success(filesystemURL))
+                    } catch {
+                        if let resourceError = error as? ResourceError {
+                            completion(.failure(resourceError))
+                        } else {
+                            completion(.failure(.unexpectedError(message: error.localizedDescription)))
+                        }
+                    }
+                }
+            } catch {
+                completion(.failure(.unexpectedError(message: error.localizedDescription)))
+            }
+        }
+    }
+    
+}
+
 
 fileprivate extension Resource where Output: Codable {
     
@@ -155,10 +228,10 @@ private extension Resource {
         var request = try urlRequest(using: parameter)
         request.setValue(userAgent, forHttpHeaderField: .userAgent)
         // If the resource is also authenticated, wee need to embedd an authentication token.
-        // if let authenticated = self as? AuthenticatedResource {
-        //    let token = try await authenticated.authenticator.validToken()
-        //    request.authenticated(with: token, headerField: authenticated.authHeader)
-        // }
+         if let authenticated = self as? AuthenticatedResource {
+            let token = try await authenticated.authenticator.validToken()
+            request.authenticated(with: token, headerField: authenticated.authHeader)
+         }
         
         request.httpMethod = self.httpMethod.rawValue
         request.debug()
@@ -176,15 +249,21 @@ private extension Resource {
             request.httpMethod = self.httpMethod.rawValue
             
             // If the resource is also authenticated, wee need to embedd an authentication token.
-            // if let authenticated = self as? AuthenticatedResource {
-            //    let token = try await authenticated.authenticator.validToken()
-            //    request.authenticated(with: token, headerField: authenticated.authHeader)
-            // }
-            
-            
-            request.debug()
-            
-            completion(.success(request))
+             if let authenticated = self as? AuthenticatedResource {
+                 authenticated.authenticator.validToken { tokenResult in
+                     do {
+                         let token = try tokenResult.get()
+                         request.authenticated(with: token, headerField: authenticated.authHeader)
+                         request.debug()
+                         completion(.success(request))
+                     } catch {
+                         completion(.failure(error))
+                     }
+                 }
+             } else {
+                 request.debug()
+                 completion(.success(request))
+             }
         } catch {
             completion(.failure(error))
         }
@@ -199,7 +278,7 @@ private extension Resource {
      - Parameter response: The URLResponse that needs to be inspected.
      - Parameter data: The data associated to the URLRequest. It's used to print the optional error message associated with the response code.
      */
-    func validateResponse(_ response: URLResponse, data: Data?) throws {
+    static func validateResponse(_ response: URLResponse, data: Data?) throws {
         
         debug(response, data: data)
         
@@ -219,7 +298,7 @@ private extension Resource {
         }
     }
     
-    func debug(_ response: URLResponse, data: Data?) {
+    static func debug(_ response: URLResponse, data: Data?) {
 #if DEBUG
         defer { print(String(repeating: "=", count: debugHeaderLength)) }
         
