@@ -13,7 +13,8 @@ let debugVerbosity = 0
 extension URLRequest {
     
     public func debug() {
-#if DEBUG
+
+        guard RequestConfiguration.debugsHTTPRequests else { return }
         var trail = debugHeaderLength - 20
         if trail < 1 { trail = 1 }
         print("== 🔎 URLRequest 🔍 \(String(repeating: "=", count: trail))")
@@ -23,7 +24,6 @@ extension URLRequest {
             print(httpMethod ?? "", "➡️", url?.absoluteString ?? "URL??")
         }
         print(String(repeating: "=", count: debugHeaderLength))
-#endif
     }
     
     public var asCurl: String {

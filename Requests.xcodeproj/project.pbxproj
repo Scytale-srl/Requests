@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		6D27309D2D6C78BC0029A7D0 /* RequestConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D27309C2D6C78BC0029A7D0 /* RequestConfiguration.swift */; };
 		6D48BAE82B67BA6300D351F8 /* Requests.docc in Sources */ = {isa = PBXBuildFile; fileRef = 6D48BAE72B67BA6300D351F8 /* Requests.docc */; };
 		6D48BAEE2B67BA6400D351F8 /* Requests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6D48BAE32B67BA6300D351F8 /* Requests.framework */; };
 		6D48BAF32B67BA6400D351F8 /* RequestsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D48BAF22B67BA6400D351F8 /* RequestsTests.swift */; };
@@ -47,6 +48,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		6D27309C2D6C78BC0029A7D0 /* RequestConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestConfiguration.swift; sourceTree = "<group>"; };
 		6D48BAE32B67BA6300D351F8 /* Requests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Requests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		6D48BAE62B67BA6300D351F8 /* Requests.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Requests.h; sourceTree = "<group>"; };
 		6D48BAE72B67BA6300D351F8 /* Requests.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; path = Requests.docc; sourceTree = "<group>"; };
@@ -156,6 +158,7 @@
 				6DC6F3C92B6A4EC7002CF2E9 /* DefaultOutputError.swift */,
 				6DC6F3AE2B6A47E5002CF2E9 /* Authenticator.swift */,
 				6DC6F3C22B6A4C49002CF2E9 /* AuthenticatorError.swift */,
+				6D27309C2D6C78BC0029A7D0 /* RequestConfiguration.swift */,
 				6D48BB032B67BBE000D351F8 /* ResourceError.swift */,
 				6DC6F3C72B6A4D6D002CF2E9 /* AuthenticationEndpoint.swift */,
 				6DC6F3B02B6A480C002CF2E9 /* TokenStore.swift */,
@@ -298,6 +301,7 @@
 				6D48BB082B67C29100D351F8 /* DebuggableError.swift in Sources */,
 				6DC6F3CE2B6A870E002CF2E9 /* LegacyARAuthenticator.swift in Sources */,
 				6DC6F3B12B6A480C002CF2E9 /* TokenStore.swift in Sources */,
+				6D27309D2D6C78BC0029A7D0 /* RequestConfiguration.swift in Sources */,
 				6DC6F3AB2B6A41BA002CF2E9 /* AuthenticatedResource.swift in Sources */,
 				6DC6F3B32B6A4A02002CF2E9 /* Prefixable + KeychainKey.swift in Sources */,
 				6DC6F3C82B6A4D6D002CF2E9 /* AuthenticationEndpoint.swift in Sources */,
@@ -494,7 +498,7 @@
 				SDKROOT = auto;
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
-				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -534,7 +538,7 @@
 				SDKROOT = auto;
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
-				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

@@ -293,13 +293,17 @@ private extension Resource {
                let debugged = try? JSONDecoder().decode(OutputError.self, from: data) {
                 throw ResourceError.apiError(resultError: debugged)
             } else {
-                throw ResourceError.badResponse(responseCode: response.statusCode, message: nil)
+                throw ResourceError.badResponse(responseCode: response.statusCode, message: "The error has an unexpexted format.")
             }
         }
     }
     
     static func debug(_ response: URLResponse, data: Data?) {
-#if DEBUG
+        
+        guard RequestConfiguration.debugsHTTPResponses else {
+            return
+        }
+        
         defer { print(String(repeating: "=", count: debugHeaderLength)) }
         
         var trail = debugHeaderLength - 15
@@ -318,7 +322,6 @@ private extension Resource {
         } else {
             print("⬅️", response.url?.absoluteString ?? "URL??")
         }
-#endif
     }
     
 }
