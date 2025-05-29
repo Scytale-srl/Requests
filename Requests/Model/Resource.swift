@@ -207,17 +207,30 @@ fileprivate extension Resource where Output: Codable {
     
 }
 
+private enum ResourceInternalState {
+    static var injectedSession: URLSession?
+}
+
+public extension Resource {
+    
+    static func inject(session: URLSession?) {
+        ResourceInternalState.injectedSession = session
+    }
+    
+}
+
 private extension Resource {
     
     static func session(urlConfiguration: URLSessionConfiguration? = nil) -> URLSession {
-        
-        let session: URLSession
-        if let urlConfiguration {
-            session = URLSession(configuration: urlConfiguration)
-        } else {
-            session = URLSession.shared
+        if let injected = ResourceInternalState.injectedSession {
+            return injected
         }
-        return session
+
+        if let urlConfiguration {
+            return URLSession(configuration: urlConfiguration)
+        }
+        
+        return URLSession.shared
     }
     
     @available(iOS 13.0, *)
