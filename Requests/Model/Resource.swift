@@ -317,14 +317,14 @@ private extension Resource {
             return
         }
         
-        defer { print(String(repeating: "=", count: debugHeaderLength)) }
+        defer { print(String(repeating: "=", count: RequestConfiguration.debugHeaderLength)) }
         
-        var trail = debugHeaderLength - 15
+        var trail = RequestConfiguration.debugHeaderLength - 15
         if trail < 2 { trail = 2 }
         
         print("== URLResponse " + String(repeating: "=", count: trail))
         
-        if debugVerbosity > 0 {
+        if RequestConfiguration.debugVerbosity > 0 {
             print("\(response)")
             print("Raw Data:")
             if let data {

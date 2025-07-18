@@ -7,23 +7,21 @@
 
 import Foundation
 
-let debugHeaderLength = 80
-let debugVerbosity = 0
 
 extension URLRequest {
     
     public func debug() {
 
         guard RequestConfiguration.debugsHTTPRequests else { return }
-        var trail = debugHeaderLength - 20
+        var trail = RequestConfiguration.debugHeaderLength - 20
         if trail < 1 { trail = 1 }
         print("== 🔎 URLRequest 🔍 \(String(repeating: "=", count: trail))")
-        if debugVerbosity > 0 {
+        // if RequestConfiguration.debugVerbosity > 0 {
             print(asCurl)
-        } else {
-            print(httpMethod ?? "", "➡️", url?.absoluteString ?? "URL??")
-        }
-        print(String(repeating: "=", count: debugHeaderLength))
+        //} else {
+        //    print(httpMethod ?? "", "➡️", url?.absoluteString ?? "URL??")
+        // }
+        print(String(repeating: "=", count: RequestConfiguration.debugHeaderLength))
     }
     
     public var asCurl: String {
