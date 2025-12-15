@@ -1,3 +1,5 @@
-Output/Requests.xcframework
-build
+Output/
+build/
+.build/
+.swiftpm/
 Requests.xcodeproj/project.xcworkspace/xcuserdata/icesco.xcuserdatad/UserInterfaceState.xcuserstate
