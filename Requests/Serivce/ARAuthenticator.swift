@@ -116,13 +116,13 @@ public actor ARAuthenticator: Authenticator {
         let flow = RefreshToken(clientID: clientId,
                                 clientSecret: "",
                                 refreshToken: refresh)
-        let newToken = try await authenticationEndpoint.request(using: flow)
+        let newToken = try await authenticationEndpoint.request(using: flow, userAgent: authenticationEndpoint.userAgent ?? "AuthenticatedRequests iOS")
         assignNewToken(newToken)
         return newToken
     }
-    
+
     private func newToken(credentials: ARConfiguration) async throws -> OAuth2Token {
-        let newToken = try await authenticationEndpoint.request(using: credentials)
+        let newToken = try await authenticationEndpoint.request(using: credentials, userAgent: authenticationEndpoint.userAgent ?? "AuthenticatedRequests iOS")
         assignNewToken(newToken)
         return newToken
     }

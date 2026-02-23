@@ -22,7 +22,7 @@ public struct AuthenticationEndpoint: Resource, Equatable {
     
     private let newTokenPath: String
     
-    private let userAgent: String?
+    let userAgent: String?
     
     public init(baseEndpoint: URL,
                 path: String,

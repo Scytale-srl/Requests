@@ -145,7 +145,7 @@ public class LegacyARAuthenticator: Authenticator {
         let flow = RefreshToken(clientID: clientId,
                                 clientSecret: "",
                                 refreshToken: refresh)
-        authenticationEndpoint.request(using: flow) { [weak self] result in
+        authenticationEndpoint.request(using: flow, userAgent: authenticationEndpoint.userAgent ?? "Requests for iOS") { [weak self] result in
             do {
                 let newToken = try result.get()
                 self?.assignNewToken(newToken)
@@ -155,10 +155,10 @@ public class LegacyARAuthenticator: Authenticator {
             }
         }
     }
-    
+
     private func newToken(credentials: ARConfiguration,
                           completion: @escaping TokenRequest) {
-        authenticationEndpoint.request(using: credentials) { [weak self] result in
+        authenticationEndpoint.request(using: credentials, userAgent: authenticationEndpoint.userAgent ?? "Requests for iOS") { [weak self] result in
             do {
                 let token = try result.get()
                 self?.assignNewToken(token)
