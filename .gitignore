@@ -2,4 +2,6 @@ Output/
 build/
 .build/
 .swiftpm/
+*.zip
+.DS_Store
 Requests.xcodeproj/project.xcworkspace/xcuserdata/icesco.xcuserdatad/UserInterfaceState.xcuserstate

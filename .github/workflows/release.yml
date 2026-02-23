@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g. 1.2.0)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Select latest stable Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Build XCFramework
+        run: |
+          chmod +x xcframework.sh
+          ./xcframework.sh
+
+      - name: Extract checksum
+        id: checksum
+        run: |
+          CHECKSUM=$(swift package compute-checksum Output/Requests.xcframework.zip)
+          echo "sha256=$CHECKSUM" >> "$GITHUB_OUTPUT"
+
+      - name: Update Package.swift
+        run: |
+          VERSION="${{ inputs.version }}"
+          CHECKSUM="${{ steps.checksum.outputs.sha256 }}"
+          URL="https://github.com/Scytale-srl/Requests/releases/download/${VERSION}/Requests.xcframework.zip"
+
+          sed -i '' \
+            -e "s|url: \"https://github.com/Scytale-srl/Requests/releases/download/[^\"]*\"|url: \"${URL}\"|" \
+            -e "s|checksum: \"[^\"]*\"|checksum: \"${CHECKSUM}\"|" \
+            Package.swift
+
+      - name: Validate Package.swift
+        run: swift package dump-package
+
+      - name: Commit and tag
+        run: |
+          VERSION="${{ inputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Package.swift
+          git commit -m "Release ${VERSION}: update binary target checksum"
+          git tag "${VERSION}"
+          git push origin master
+          git push origin "${VERSION}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          name: ${{ inputs.version }}
+          files: Output/Requests.xcframework.zip
+          generate_release_notes: true

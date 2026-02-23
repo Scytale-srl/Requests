@@ -13,6 +13,9 @@ let package = Package(
         .library(
             name: "Requests",
             targets: ["Requests"]),
+        .library(
+            name: "RequestsBinary",
+            targets: ["RequestsBinary"]),
     ],
     dependencies: [],
     targets: [
@@ -24,5 +27,10 @@ let package = Package(
             name: "RequestsTests",
             dependencies: ["Requests"],
             path: "RequestsTests"),
+        .binaryTarget(
+            name: "RequestsBinary",
+            url: "https://github.com/Scytale-srl/Requests/releases/download/0.0.0/Requests.xcframework.zip",
+            checksum: "PLACEHOLDER"
+        ),
     ]
 )
