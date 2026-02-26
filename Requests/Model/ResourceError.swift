@@ -11,7 +11,7 @@ import Foundation
 public enum ResourceError: Error, LocalizedError {
     
     case badResponse(responseCode: Int, message: String?)
-    case apiError(resultError: any DebuggableError)
+    case apiError(resultError: any DebuggableError, statusCode: Int)
     case notHttpResponse
     case badURL
     case badDataType
@@ -34,8 +34,8 @@ public enum ResourceError: Error, LocalizedError {
             return "Unknown data type."
         case .unexpectedError(message: let message):
             return "An unexpected error occurred: \(message)"
-        case let .apiError(resultError):
-            return "\(resultError.errorCode) " + (resultError.rawMessage ?? "Unknown error message.")
+        case let .apiError(resultError, statusCode):
+            return "[\(statusCode)] \(resultError.errorCode) " + (resultError.rawMessage ?? "Unknown error message.")
         }
     }
     

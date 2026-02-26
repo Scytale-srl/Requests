@@ -304,7 +304,7 @@ private extension Resource {
         guard (200 ... 299) ~= response.statusCode else { // check for http errors
             if let data,
                let debugged = try? JSONDecoder().decode(OutputError.self, from: data) {
-                throw ResourceError.apiError(resultError: debugged)
+                throw ResourceError.apiError(resultError: debugged, statusCode: response.statusCode)
             } else {
                 throw ResourceError.badResponse(responseCode: response.statusCode, message: "The error has an unexpexted format.")
             }
