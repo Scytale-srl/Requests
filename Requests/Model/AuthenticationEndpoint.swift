@@ -42,7 +42,7 @@ public struct AuthenticationEndpoint: Resource, Equatable {
         
         var urlRequest = URLRequest(url: completeEndpoint)
         urlRequest.httpMethod = self.httpMethod.rawValue
-        urlRequest.setContentType(.formEncoded)
+        urlRequest.setContentType(parameter.contentType)
         urlRequest.httpBody = parameter.httpBody
         
         if let userAgent {
