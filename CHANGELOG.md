@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-04-29
+
+### Added
+
+- `AppAttestFlow`, an `OAuthFlow` conformance that carries an Apple App Attest assertion (key id, CBOR-encoded blob, server-issued nonce) for clients exchanging the assertion for a session token at a Backend-For-Frontend.
+- `OAuthFlow.contentType` (default `.formEncoded` via protocol extension) so flows can opt into a different request body content-type. `AppAttestFlow` overrides to `.applicationJson`. `ClientCredentials`, `CodeFlow`, and `RefreshToken` continue to send `application/x-www-form-urlencoded` with no source change.
+- `ARAuthenticator.setFreshFlowProvider(_:)`, an async closure invoked whenever the authenticator needs a brand-new flow value before hitting the token endpoint. Designed for single-use payloads such as attestation flows whose nonce can't be replayed; existing OAuth flows keep working without any provider configured.
+- `docs/bff-attestation-plan.md` capturing the architecture and breakdown of the BFF + attestation work for consumer apps.
+
 ## [1.2.0] - 2026-02-26
 
 ### Changed
