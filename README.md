@@ -10,9 +10,10 @@ Requests simplifies network operations in iOS and macOS applications by providin
 
 - **Protocol-Based Architecture**: Define resources using the `Resource` protocol for type-safe networking
 - **OAuth 2.0 Support**: Built-in support for multiple OAuth flows:
-  - Authorization Code Flow
+  - Authorization Code Flow (with PKCE)
   - Client Credentials Flow
   - Refresh Token Flow
+  - App Attest Flow (Apple App Attest assertion exchanged for a session token at a Backend-For-Frontend)
 - **Automatic Token Management**: Handles token refresh automatically with secure keychain storage
 - **Async/Await Support**: Modern Swift concurrency alongside traditional completion handlers
 - **Type-Safe**: Strong typing for requests, responses, and errors
@@ -115,6 +116,63 @@ let authenticator = ARAuthenticator(
 let resource = ProtectedResource(authenticator: authenticator)
 let data = try await resource.request(using: ())
 ```
+
+### App Attest authentication (BFF pattern)
+
+For mobile apps that talk to a backend without a per-user login — where
+embedding an OAuth `client_secret` would violate
+[RFC 8252](https://datatracker.ietf.org/doc/html/rfc8252) — `Requests`
+supports exchanging an Apple App Attest assertion for a session token at
+a Backend-For-Frontend (BFF):
+
+```swift
+import DeviceCheck
+import Requests
+
+// 1. Build a fresh AppAttestFlow on demand. The package itself doesn't
+//    import DeviceCheck, so this lives in the consumer.
+@MainActor
+final class AttestationManager {
+    let bff: BFFEndpoint
+    private let service = DCAppAttestService.shared
+
+    func freshFlow() async throws -> AppAttestFlow {
+        let keyId = AttestationStorage.keyId!  // registered at first launch
+        let nonce = try await bff.fetchSessionNonce()
+        let assertion = try await service.generateAssertion(
+            keyId,
+            clientDataHash: SHA256.hash(of: nonce)
+        )
+        return AppAttestFlow(
+            clientID: bff.clientID,
+            keyId: keyId,
+            assertion: assertion,
+            nonce: nonce
+        )
+    }
+}
+
+// 2. Wire it into ARAuthenticator. The fresh-flow provider runs whenever
+//    the access token expires (NOT per request) — see the DocC article
+//    "Attestation-based authentication" for the full timeline.
+let authenticator = ARAuthenticator(
+    tokenStore: tokenManager,
+    baseEndpoint: AuthenticationEndpoint(
+        baseEndpoint: bff.baseURL,
+        path: "/v1/session"
+    )
+)
+
+await authenticator.configure(with: try await attestationManager.freshFlow())
+await authenticator.setFreshFlowProvider {
+    try await attestationManager.freshFlow()
+}
+```
+
+The package never reads or sends the bundle identifier or the team
+identifier — Apple includes them in the signed attestation blob via
+`rpIdHash`, and the BFF compares that hash against the `appID` it has
+configured server-side. See the DocC article for details.
 
 ### Download Files
 
