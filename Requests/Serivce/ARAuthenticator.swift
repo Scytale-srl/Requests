@@ -17,10 +17,15 @@ public actor ARAuthenticator: Authenticator {
     
     public typealias ARConfiguration = OAuthFlow
 
-    /// Closure that produces a fresh `OAuthFlow` value on demand. Useful for
-    /// flows whose payload is single-use — e.g. attestation flows where the
-    /// nonce can't be replayed. When set, the authenticator invokes it
-    /// instead of reusing the stored flow when a new token is needed.
+    /// Closure that produces a fresh ``OAuthFlow`` value on demand. Useful
+    /// for flows whose payload is single-use — for example
+    /// ``AppAttestFlow`` whose nonce can't be replayed. When set, the
+    /// authenticator invokes it every time it has to fetch a new access
+    /// token, instead of reusing the flow registered via
+    /// ``configure(with:)``.
+    ///
+    /// The provider runs only on token expiry, never per request — see
+    /// the <doc:AttestationFlow> article for the full timeline.
     public typealias FreshFlowProvider = @Sendable () async throws -> ARConfiguration
 
     private var tokenStore: ARTokenManager
@@ -45,7 +50,19 @@ public actor ARAuthenticator: Authenticator {
     /// Install (or remove, by passing `nil`) a closure that will be invoked
     /// every time the authenticator needs a brand-new flow value before
     /// hitting the token endpoint. Pass `nil` to fall back to reusing the
-    /// flow registered via `configure(with:)`.
+    /// flow registered via ``configure(with:)``.
+    ///
+    /// Typical use is attestation flows whose nonce is single-use:
+    ///
+    /// ```swift
+    /// await authenticator.setFreshFlowProvider {
+    ///     try await attestationManager.freshFlow()
+    /// }
+    /// ```
+    ///
+    /// - Parameter provider: an async closure returning a freshly built
+    ///   flow value. Errors thrown by the closure surface to the caller of
+    ///   ``validToken()`` as the reason the token couldn't be obtained.
     public func setFreshFlowProvider(_ provider: FreshFlowProvider?) {
         self.freshFlowProvider = provider
     }

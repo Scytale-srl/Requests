@@ -8,18 +8,26 @@
 import Foundation
 
 /**
- An `OAuthFlow` that proves the calling app/device with an Apple App Attest
- assertion.
+ An ``OAuthFlow`` that proves the calling app/device with an Apple App
+ Attest assertion.
 
  Designed for clients that talk to a Backend-For-Frontend (BFF) which:
  - issues a single-use nonce,
  - verifies the assertion server-side against Apple's App Attest service,
- - mints an `OAuth2Token` (typically a short-lived JWT) on success.
+ - mints an ``OAuth2Token`` (typically a short-lived JWT) on success.
 
- The flow itself does **not** call any App Attest API — it only carries
- the values produced by `DCAppAttestService.generateAssertion(_:clientDataHash:)`
- to the BFF token endpoint. The package can therefore stay free of platform
- framework dependencies and remain available on macOS and iOS 13.
+ ## What's NOT in the flow
+
+ - The app binary, an IPA hash, or any app metadata. The attestation
+   blob is roughly 600 bytes (assertion is roughly 150) — never the bundle.
+ - The bundle identifier or the team identifier. They're embedded by
+   `DCAppAttestService` into the signed blob via `rpIdHash =
+   SHA-256(teamID.bundleID)`, read by iOS from the calling process's
+   code-signing identity. The package and the consumer don't have to
+   read or send them — the BFF compares the hash against the `appID` it
+   has configured server-side.
+
+ ## Single-use
 
  The flow is single-use: the `nonce` is consumed by the BFF on the first
  request. To refresh the session token, the consumer must:
@@ -27,7 +35,15 @@ import Foundation
  2. call `generateAssertion` again,
  3. build a fresh `AppAttestFlow` and feed it back to the authenticator.
 
- See `ARAuthenticator.setFreshFlowProvider(_:)` for the supported pattern.
+ See ``ARAuthenticator/setFreshFlowProvider(_:)`` for the supported
+ pattern, and the <doc:AttestationFlow> article for an end-to-end example.
+
+ ## Platform availability
+
+ The flow type itself is platform-agnostic — it does not import
+ `DeviceCheck` and does not call `generateAssertion` directly. Consumers
+ do that on iOS 14+/macCatalyst and feed the result into this value type,
+ which lets the package keep its existing minimum deployment targets.
  */
 public struct AppAttestFlow: Codable, Equatable, OAuthFlow {
 
