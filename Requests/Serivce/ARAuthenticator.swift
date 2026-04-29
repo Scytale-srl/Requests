@@ -16,7 +16,13 @@ import Foundation
 public actor ARAuthenticator: Authenticator {
     
     public typealias ARConfiguration = OAuthFlow
-    
+
+    /// Closure that produces a fresh `OAuthFlow` value on demand. Useful for
+    /// flows whose payload is single-use — e.g. attestation flows where the
+    /// nonce can't be replayed. When set, the authenticator invokes it
+    /// instead of reusing the stored flow when a new token is needed.
+    public typealias FreshFlowProvider = @Sendable () async throws -> ARConfiguration
+
     private var tokenStore: ARTokenManager
     private var currentToken: OAuth2Token = .init(access_token: "", refresh_token: nil,
                                                   expires_in: 0, token_type: "bearer")
@@ -25,14 +31,23 @@ public actor ARAuthenticator: Authenticator {
      */
     private var fetchTask: Task<OAuth2Token, Error>?
     private var oauthFlow: ARConfiguration?
-    
+    private var freshFlowProvider: FreshFlowProvider?
+
     /// The current authentication endpoint.
     public var authenticationEndpoint: AuthenticationEndpoint
-    
+
     public init(tokenStore: ARTokenManager,
                 baseEndpoint: AuthenticationEndpoint) {
         self.tokenStore = tokenStore
         self.authenticationEndpoint = baseEndpoint
+    }
+
+    /// Install (or remove, by passing `nil`) a closure that will be invoked
+    /// every time the authenticator needs a brand-new flow value before
+    /// hitting the token endpoint. Pass `nil` to fall back to reusing the
+    /// flow registered via `configure(with:)`.
+    public func setFreshFlowProvider(_ provider: FreshFlowProvider?) {
+        self.freshFlowProvider = provider
     }
     
     /// Updates the current authentication endpoint with a new one.
@@ -122,7 +137,13 @@ public actor ARAuthenticator: Authenticator {
     }
 
     private func newToken(credentials: ARConfiguration) async throws -> OAuth2Token {
-        let newToken = try await authenticationEndpoint.request(using: credentials, userAgent: authenticationEndpoint.userAgent ?? "AuthenticatedRequests iOS")
+        let flowToUse: ARConfiguration
+        if let freshFlowProvider {
+            flowToUse = try await freshFlowProvider()
+        } else {
+            flowToUse = credentials
+        }
+        let newToken = try await authenticationEndpoint.request(using: flowToUse, userAgent: authenticationEndpoint.userAgent ?? "AuthenticatedRequests iOS")
         assignNewToken(newToken)
         return newToken
     }
