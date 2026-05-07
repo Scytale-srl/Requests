@@ -40,33 +40,42 @@ public protocol Resource {
 
 @available(iOS 13.0, *)
 public extension Resource where Output: Codable {
-    
+
     /// Requests the desired resource asynchronously.
     /// - Parameter parameter: The input parameter that is necessary to build the URLRequest.
     /// - Returns: Returns the received data decoded into the expected output type, or throws an error.
     func request(using parameter: Input,
                  userAgent: String = "AuthenticatedRequests iOS",
                  urlConfiguration: URLSessionConfiguration? = nil) async throws -> Output {
-        
+
         let request = try await urlRequest(with: parameter, userAgent: userAgent)
-        let session = Self.session(urlConfiguration: urlConfiguration)
-        
-        let (data, response): (Data, URLResponse)
-        if #available(iOS 15.0, macOS 12.0, *) {
-            (data, response) = try await session.data(for: request)
-        } else {
-            (data, response) = try await session.data(using: request)
-        }
-        
-        // We check if the Task got cancelled to avoid decoding data for nothing.
-        try Task.checkCancellation()
-        
-        // We first validate the URLResponse that we received in order to check if everything went ok.
-        try Self.validateResponse(response, data: data)
-        
-        return try Self.decodeData(data: data)
+        return try await Self.execute(request: request, urlConfiguration: urlConfiguration)
     }
-    
+
+}
+
+@available(iOS 13.0, *)
+public extension Resource where Output: Codable, Self: AuthenticatedResource {
+
+    /// Authenticated overload of `request(using:)`. Chosen by Swift's
+    /// overload resolution at the call site whenever `Self` conforms to
+    /// `AuthenticatedResource` — no runtime cast is involved, so it works
+    /// reliably across module boundaries (the runtime cast variant is known
+    /// to fail under library-evolution + WMO when the conformance is
+    /// declared in a client module).
+    func request(using parameter: Input,
+                 userAgent: String = "AuthenticatedRequests iOS",
+                 urlConfiguration: URLSessionConfiguration? = nil) async throws -> Output {
+
+        var request = try urlRequest(using: parameter)
+        request.setValue(userAgent, forHttpHeaderField: .userAgent)
+        let token = try await self.authenticator.validToken()
+        request.authenticated(with: token, headerField: self.authHeader)
+        request.httpMethod = self.httpMethod.rawValue
+        request.debug()
+
+        return try await Self.execute(request: request, urlConfiguration: urlConfiguration)
+    }
 }
 
 public extension Resource where Output: Codable {
@@ -237,19 +246,32 @@ private extension Resource {
     private func urlRequest(with parameter: Input,
                             userAgent: String,
                             urlSessionConfiguration: URLSessionConfiguration? = nil) async throws -> URLRequest {
-        
+
         var request = try urlRequest(using: parameter)
         request.setValue(userAgent, forHttpHeaderField: .userAgent)
-        // If the resource is also authenticated, wee need to embedd an authentication token.
-         if let authenticated = self as? AuthenticatedResource {
-            let token = try await authenticated.authenticator.validToken()
-            request.authenticated(with: token, headerField: authenticated.authHeader)
-         }
-        
         request.httpMethod = self.httpMethod.rawValue
         request.debug()
-        
+
         return request
+    }
+
+    /// Shared HTTP execution + decoding step for both authenticated and
+    /// unauthenticated `request(using:)` overloads.
+    @available(iOS 13.0, *)
+    static func execute(request: URLRequest,
+                        urlConfiguration: URLSessionConfiguration? = nil) async throws -> Output where Output: Codable {
+        let session = Self.session(urlConfiguration: urlConfiguration)
+
+        let (data, response): (Data, URLResponse)
+        if #available(iOS 15.0, macOS 12.0, *) {
+            (data, response) = try await session.data(for: request)
+        } else {
+            (data, response) = try await session.data(using: request)
+        }
+
+        try Task.checkCancellation()
+        try Self.validateResponse(response, data: data)
+        return try Self.decodeData(data: data)
     }
     
     private func urlRequest(with parameter: Input,
